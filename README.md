@@ -1,4 +1,4 @@
-# bayu-skills
+# skill
 
 Claude Code skills by Bayu Krisnayana.
 
@@ -24,7 +24,7 @@ Pick one.
 ### npx (works with Claude Code, Cursor, Codex and other agents)
 
 ```bash
-npx skills add GITHUB_USERNAME/bayu-skills@device-preview
+npx skills add komangbayu04/skill@device-preview
 ```
 
 Then run `/device-preview` in Claude Code.
@@ -34,13 +34,13 @@ Then run `/device-preview` in Claude Code.
 Inside Claude Code:
 
 ```
-/plugin install bayu --marketplace GITHUB_USERNAME/bayu-skills
+/plugin install bayu --marketplace komangbayu04/skill
 ```
 
 On older Claude Code versions, use two steps instead:
 
 ```
-/plugin marketplace add GITHUB_USERNAME/bayu-skills
+/plugin marketplace add komangbayu04/skill
 /plugin install bayu@bayu-skills
 ```
 
@@ -49,8 +49,8 @@ Then run `/bayu:device-preview`. Plugin updates arrive automatically.
 ### Manual
 
 ```bash
-git clone https://github.com/GITHUB_USERNAME/bayu-skills
-cp -r bayu-skills/skills/device-preview ~/.claude/skills/
+git clone https://github.com/komangbayu04/skill
+cp -r skill/skills/device-preview ~/.claude/skills/
 ```
 
 Then run `/device-preview`.
