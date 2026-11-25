@@ -23,7 +23,7 @@
     display: flex; flex-direction: column; overflow: hidden;
   }
 
-  /* ---------- Studio backdrop ---------- */
+  /* Studio backdrop */
   .studio { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
   .studio .horizon { /* soft wall-to-floor transition */
     position: absolute; left: 0; right: 0; top: 56%; height: 14%;
@@ -46,7 +46,7 @@
   .studio .vignette { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(120,128,150,.25) 100%); }
   .bar, .stage, .hint { position: relative; z-index: 1; }
 
-  /* ---------- Toolbar ---------- */
+  /* Toolbar */
   .bar {
     display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     margin: 14px 16px 0; padding: 8px;
@@ -79,7 +79,7 @@
   .seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(20,30,60,.12); }
   .lbl { color: var(--muted); font-size: 12px; }
 
-  /* Dropdown (custom, matches the toolbar) */
+  /* Dropdown */
   .dd-btn {
     display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 12px;
     background: rgba(255,255,255,.6); border: 1px solid rgba(20,30,60,.08); border-radius: 9px;
@@ -116,7 +116,7 @@
   .mi.on span b { font-weight: 600; }
   .mi span b { font-weight: 400; }
 
-  /* Tooltip: same light glass as the menu */
+  /* Tooltip */
   .tip {
     position: fixed; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 6px 10px; pointer-events: none;
     background: rgba(255,255,255,.88); backdrop-filter: blur(24px) saturate(1.5);
@@ -129,12 +129,12 @@
   .tip b { font-weight: 500; }
   .tip kbd { padding: 0 5px; border: 1px solid rgba(20,30,60,.12); border-radius: 4px; background: rgba(20,30,60,.04); color: var(--muted); font: inherit; font-size: 11px; }
 
-  /* ---------- Stage ---------- */
+  /* Stage */
   .stage {
     flex: 1; min-height: 0; overflow: auto;
     display: flex; padding: 28px 28px 40px;
   }
-  /* Devices top-aligned with each other; the pair is centered (margin:auto stays safe when it overflows). */
+  /* margin: auto centers the pair and stays safe when it overflows */
   .row { display: flex; align-items: flex-start; gap: var(--gap, 48px); margin: auto; }
   .slot { flex: none; display: flex; flex-direction: column; align-items: center; gap: 18px; }
   .slot[hidden] { display: none; }
@@ -154,7 +154,7 @@
   .label b { color: var(--text); font-weight: 500; }
   iframe { display: block; border: 0; background: #fff; }
 
-  /* Shared material: brushed titanium rim (light blue-silver) + thin dark-grey bezel */
+  /* Shared device material: titanium rim and dark bezel */
   .device {
     --rim-x: linear-gradient(90deg, #a7b2c6 0%, #e9eef5 3%, #cfd7e3 12%, #dfe5ee 50%, #cfd7e3 88%, #eef2f7 97%, #9eaabf 100%);
     --rim-y: linear-gradient(180deg, #eef2f7 0%, #d7dee8 40%, #c9d1de 100%);
@@ -167,7 +167,7 @@
       0 10px 20px -10px rgba(40,52,85,.22);
   }
 
-  /* Laptop (side padding = base overhang, so measured width includes the base) */
+  /* Laptop: side padding equals the base overhang, so the measured width includes it */
   .device.laptop { padding: 0 100px; }
   .laptop .lid {
     padding: 9px; border-radius: 30px 30px 12px 12px; position: relative;
@@ -199,7 +199,7 @@
   .monitor .neck { width: 16%; height: 90px; margin: 0 auto; background: linear-gradient(90deg, #a7b2c6, #eef2f7 50%, #a7b2c6); clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%); }
   .monitor .foot { width: 30%; height: 14px; margin: 0 auto; border-radius: 4px 4px 12px 12px; background: var(--rim-y); box-shadow: inset 0 1px 0 #fff, 0 20px 30px -12px rgba(40,52,85,.45); }
 
-  /* Phone / tablet: brushed titanium rim (light blue-silver), very thin black bezel, side buttons */
+  /* Phone and tablet */
   .phone {
     --rim: linear-gradient(90deg, #a7b2c6 0%, #e9eef5 6%, #cfd7e3 18%, #dfe5ee 50%, #cfd7e3 82%, #eef2f7 94%, #9eaabf 100%);
     padding: 11px; border-radius: 70px; position: relative; background: var(--rim);
@@ -271,14 +271,14 @@
   <div class="hint"><kbd>R</kbd> reload · <kbd>L</kbd> rotate mobile · <kbd>S</kbd> sync scroll · edits hot-reload in both frames</div>
 
 <script>
-  // Replaced by the server with { target, path }. Left as a string = opened without the server (no scroll sync).
+  // The server replaces this with { target, path }. It stays a string when the file is opened directly.
   const CONFIG = "__PREVIEW_CONFIG__";
   const PROXIED = typeof CONFIG === 'object';
   const qs = new URLSearchParams(location.search);
   const TARGET = PROXIED ? CONFIG.target : new URL(qs.get('url') || 'http://localhost:3000').origin;
   const START_PATH = PROXIED ? CONFIG.path : (() => { const u = new URL(qs.get('url') || 'http://localhost:3000'); return u.pathname + u.search + u.hash; })();
 
-  // CSS viewport sizes (default "looks like" resolution of each device).
+  // CSS viewport size of each device at its default resolution.
   const LAPTOPS = {
     mbp16:   { name: 'MacBook Pro 16"', w: 1728, h: 1117, kind: 'laptop', group: 'MacBook' },
     mbp14:   { name: 'MacBook Pro 14"', w: 1512, h: 982,  kind: 'laptop', group: 'MacBook' },
@@ -303,7 +303,7 @@
     ipad:     { name: 'iPad Air 11"',      w: 820, h: 1180, kind: 'tablet', group: 'Tablet' },
   };
 
-  // ---------- state ----------
+  // State
   const store = {
     get(k, d) { try { const v = localStorage.getItem('dp:' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem('dp:' + k, JSON.stringify(v)); } catch {} },
@@ -321,9 +321,10 @@
 
   const $ = (id) => document.getElementById(id);
   const frames = { L: null, M: null };
+  let active = 'L';
   const src = (path) => (PROXIED ? path : TARGET + path);
 
-  // ---------- build devices ----------
+  // Build devices
   function makeIframe(w, h, key) {
     const f = document.createElement('iframe');
     f.width = w; f.height = h; f.src = src(state.path);
@@ -367,9 +368,7 @@
     $('fitM').replaceChildren(d);
   }
 
-  // ---------- scroll + navigation sync ----------
-  // Only the frame the user is interacting with drives the other, so the two never fight.
-  let active = 'L';
+  // Scroll and navigation sync. Only the frame in use drives the other one.
   const other = (k) => (k === 'L' ? 'M' : 'L');
   const docOf = (k) => { try { return frames[k].contentWindow.document; } catch { return null; } };
   const pathOf = (k) => { try { const l = frames[k].contentWindow.location; return l.pathname + l.search + l.hash; } catch { return null; } };
@@ -414,7 +413,7 @@
     syncPath(k);
   }
 
-  // Follow link clicks / client-side routing in the active frame.
+  // Follow link clicks and client-side routing in the active frame.
   let pending = null;
   function syncPath(k) {
     const p = pathOf(k);
@@ -430,7 +429,7 @@
   }
   setInterval(() => syncPath(active), 400);
 
-  // ---------- layout / scaling ----------
+  // Layout
   function layout() {
     const stage = $('stage');
     const cs = getComputedStyle(stage);
@@ -451,7 +450,7 @@
 
     let sL = 0, sM = 0;
     if (showL && showM) {
-      // One shared scale, so laptop and mobile keep their true size relation.
+      // One shared scale keeps the true size relation between both devices.
       sL = sM = Math.min(1, (W - gap) / (nL.w + nM.w), H / Math.max(nL.h, nM.h));
     } else if (showL) sL = Math.min(1, W / nL.w, H / nL.h);
     else sM = Math.min(1, W / nM.w, H / nM.h);
@@ -469,8 +468,7 @@
     $('lab' + k).innerHTML = `<b>${p.name}</b> · ${w} × ${h} · ${Math.round(s * 100)}%`;
   }
 
-  // ---------- controls ----------
-  // ---------- custom dropdown ----------
+  // Dropdowns
   const CHEVRON = '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
   const CHECK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.7 2.7L16 9.8"/></svg>';
   const menu = $('menu');
@@ -509,14 +507,14 @@
     document.querySelectorAll('.dd.open').forEach((d) => d.classList.remove('open'));
   }
   document.addEventListener('click', (e) => { if (!menu.contains(e.target)) closeMenu(); });
-  addEventListener('blur', closeMenu); // clicking into a device frame
+  addEventListener('blur', closeMenu);
   menu.addEventListener('keydown', (e) => {
     const items = [...menu.querySelectorAll('.mi')], i = items.indexOf(document.activeElement);
     if (e.key === 'ArrowDown') { e.preventDefault(); items[Math.min(items.length - 1, i + 1)].focus(); }
     if (e.key === 'ArrowUp') { e.preventDefault(); items[Math.max(0, i - 1)].focus(); }
   });
 
-  // ---------- tooltips ----------
+  // Tooltips
   const tip = $('tip');
   let tipFor = null, tipTimer;
   function hideTip() { clearTimeout(tipTimer); tip.classList.remove('show'); }
@@ -563,7 +561,7 @@
       state.path = url.pathname + url.search + url.hash;
       frames.L.src = frames.M.src = src(state.path);
     } else {
-      // A different origin cannot go through this preview's proxy: load it directly (scroll sync off).
+      // Other origins cannot go through the proxy, so they load directly without sync.
       frames.L.src = frames.M.src = url.href;
     }
     $('url').value = u;
@@ -584,7 +582,6 @@
   $('sync').onclick = () => { state.sync = !state.sync; store.set('sync', state.sync); $('sync').classList.toggle('on', state.sync); };
   $('view').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; state.view = v; store.set('view', v); setSeg('view', v); layout(); };
   $('reload').onclick = reload;
-  // The only action that leaves the preview: open the page in the system's default browser.
   $('external').onclick = () => {
     const url = TARGET + state.path;
     if (PROXIED) fetch('/__device-preview/open?url=' + encodeURIComponent(url)).catch(() => window.open(url, '_blank'));

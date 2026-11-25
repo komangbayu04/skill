@@ -1,6 +1,6 @@
 # skill
 
-Claude Code skills by Bayu Krisnayana.
+Design and frontend skills by Bayu Krisnayana.
 
 ## device-preview
 
@@ -63,7 +63,7 @@ Then run `/device-preview`.
 /device-preview http://localhost:3000/pricing
 ```
 
-Or just ask Claude to "check the responsive layout".
+Or ask your agent to "check the responsive layout".
 
 ## How it works
 
