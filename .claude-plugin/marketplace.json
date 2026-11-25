@@ -1,0 +1,14 @@
+{
+  "name": "bayu-skills",
+  "description": "Claude Code skills by Bayu Krisnayana",
+  "owner": {
+    "name": "Bayu Krisnayana"
+  },
+  "plugins": [
+    {
+      "name": "bayu",
+      "source": "./",
+      "description": "Design and frontend skills. Includes device-preview: laptop + mobile preview side by side with synced scroll."
+    }
+  ]
+}

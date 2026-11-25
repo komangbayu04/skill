@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Device Preview</title>
+<style>
+  :root {
+    --accent: #4f6bed;
+    --text: #1c1e24;
+    --muted: #6b7080;
+    --line: rgba(255, 255, 255, 0.75);
+    --panel: rgba(255, 255, 255, 0.5);
+    --metal: linear-gradient(135deg, #f3f5f8 0%, #c5ccd8 22%, #eef1f5 45%, #aeb7c6 70%, #e4e8ee 100%);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    position: relative;
+    background: linear-gradient(180deg, #d8dae0 0%, #e3e5ea 40%, #e7e9ee 58%, #d6dcea 70%, #c3cce2 85%, #b4bfdc 100%);
+    color: var(--text);
+    font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* ---------- Studio backdrop ---------- */
+  .studio { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .studio .horizon { /* soft wall-to-floor transition */
+    position: absolute; left: 0; right: 0; top: 56%; height: 14%;
+    background: linear-gradient(180deg, rgba(232,234,239,0) 0%, rgba(214,220,233,.9) 55%, rgba(200,209,228,0) 100%);
+    filter: blur(18px);
+  }
+  .studio .rainbow { /* diagonal light leak */
+    position: absolute; width: 18vw; height: 160vh; left: 22vw; top: -40vh;
+    transform: rotate(38deg);
+    background: linear-gradient(90deg, transparent 0%, rgba(255,120,120,.55) 18%, rgba(255,200,110,.6) 32%,
+      rgba(255,245,170,.55) 44%, rgba(150,230,170,.45) 56%, rgba(120,180,255,.5) 70%, rgba(170,140,255,.4) 82%, transparent 100%);
+    filter: blur(44px); opacity: .45; mix-blend-mode: soft-light;
+  }
+  .studio .rainbow.b { left: 78vw; top: -10vh; width: 10vw; opacity: .35; }
+  .studio .glow { /* cool light pooling on the floor, right side */
+    position: absolute; right: -10vw; bottom: -20vh; width: 70vw; height: 60vh;
+    background: radial-gradient(closest-side, rgba(120,145,230,.45), transparent);
+    filter: blur(30px);
+  }
+  .studio .vignette { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(120,128,150,.25) 100%); }
+  .bar, .stage, .hint { position: relative; z-index: 1; }
+
+  /* ---------- Toolbar ---------- */
+  .bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin: 14px 16px 0; padding: 8px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    backdrop-filter: blur(20px) saturate(1.4);
+    box-shadow: 0 10px 30px -12px rgba(60,70,100,.25);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 0 8px 0 6px; font-weight: 600; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px rgba(79,107,237,.6); }
+  .url {
+    flex: 1; min-width: 160px; height: 32px; padding: 0 12px;
+    background: rgba(255,255,255,.65); border: 1px solid rgba(20,30,60,.08); border-radius: 9px;
+    color: var(--text); font: inherit; outline: none;
+  }
+  .url:focus { border-color: rgba(79,107,237,.5); }
+  .group { display: flex; align-items: center; gap: 6px; }
+  .sep { width: 1px; height: 20px; background: rgba(20,30,60,.1); margin: 0 2px; }
+  select, .btn, .seg button {
+    height: 32px; padding: 0 10px; border-radius: 9px;
+    background: rgba(255,255,255,.6); border: 1px solid rgba(20,30,60,.08);
+    color: var(--text); font: inherit; cursor: pointer;
+  }
+  select { padding-right: 26px; appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 14px, calc(100% - 10px) 14px; background-size: 4px 4px; background-repeat: no-repeat; }
+  select option { background: #fff; }
+  .btn { display: grid; place-items: center; width: 32px; padding: 0; }
+  .btn:hover, select:hover, .seg button:hover { background: rgba(255,255,255,.9); }
+  .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.on { background: rgba(79,107,237,.14); border-color: rgba(79,107,237,.4); color: var(--accent); }
+  .seg { display: flex; padding: 2px; gap: 2px; background: rgba(20,30,60,.06); border-radius: 10px; }
+  .seg button { height: 26px; border: 0; background: transparent; color: var(--muted); border-radius: 7px; }
+  .seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(20,30,60,.12); }
+  .lbl { color: var(--muted); font-size: 12px; }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    flex: 1; min-height: 0; overflow: auto;
+    display: flex; padding: 28px 28px 40px;
+  }
+  /* Devices top-aligned with each other; the pair is centered (margin:auto stays safe when it overflows). */
+  .row { display: flex; align-items: flex-start; gap: var(--gap, 48px); margin: auto; }
+  .slot { flex: none; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .slot[hidden] { display: none; }
+  .fit { position: relative; }
+  .fit::after, .fit::before { content: ""; position: absolute; z-index: -1; pointer-events: none; }
+  .fit::after { /* contact shadow right under the device */
+    left: 4%; right: 4%; bottom: -10px; height: 22px;
+    background: radial-gradient(closest-side, rgba(35,45,75,.45), transparent); filter: blur(5px);
+  }
+  .fit::before { /* long soft cast shadow falling back-left on the floor */
+    left: -28%; right: 30%; bottom: -6px; height: 46px;
+    background: radial-gradient(closest-side, rgba(60,72,105,.28), transparent);
+    filter: blur(16px); transform: skewX(-35deg);
+  }
+  .device { position: absolute; top: 0; left: 0; width: max-content; transform-origin: 0 0; }
+  .label { color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .label b { color: var(--text); font-weight: 500; }
+  iframe { display: block; border: 0; background: #fff; }
+
+  /* Shared material: brushed titanium rim (light blue-silver) + thin dark-grey bezel */
+  .device {
+    --rim-x: linear-gradient(90deg, #a7b2c6 0%, #e9eef5 3%, #cfd7e3 12%, #dfe5ee 50%, #cfd7e3 88%, #eef2f7 97%, #9eaabf 100%);
+    --rim-y: linear-gradient(180deg, #eef2f7 0%, #d7dee8 40%, #c9d1de 100%);
+    --bezel: #2b2e35;
+    --rim-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.9),
+      inset 0 2px 1px rgba(255,255,255,.9),
+      inset 0 -2px 2px rgba(90,105,135,.35),
+      0 40px 60px -30px rgba(40,52,85,.5),
+      0 10px 20px -10px rgba(40,52,85,.22);
+  }
+
+  /* Laptop (side padding = base overhang, so measured width includes the base) */
+  .device.laptop { padding: 0 100px; }
+  .laptop .lid {
+    padding: 9px; border-radius: 30px 30px 12px 12px; position: relative;
+    background: var(--rim-x); box-shadow: var(--rim-shadow);
+  }
+  .laptop .lid::before { /* camera */
+    content: ""; position: absolute; top: 15px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px;
+    border-radius: 50%; background: #16181c; box-shadow: inset 0 0 0 1.5px #41454e; z-index: 1;
+  }
+  .laptop .screen {
+    overflow: hidden; border: solid var(--bezel); border-width: 20px 14px 18px;
+    border-radius: 22px 22px 6px 6px; box-shadow: 0 0 0 1px rgba(80,95,125,.35);
+  }
+  .laptop .base {
+    height: 22px; margin: 2px -100px 0; position: relative;
+    background: linear-gradient(180deg, #f4f6f9 0%, #dde3eb 30%, #c3cbd8 70%, #9ea9bc 100%);
+    border-radius: 3px 3px 22px 22px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -2px 3px rgba(90,105,135,.35), 0 30px 40px -18px rgba(40,52,85,.5);
+  }
+  .laptop .base::before { /* thumb notch */
+    content: ""; position: absolute; top: 0; left: 50%; width: 14%; height: 8px; transform: translateX(-50%);
+    background: linear-gradient(#b4bdcb, #d4dae3); border-radius: 0 0 12px 12px;
+    box-shadow: inset 0 1px 2px rgba(90,105,135,.35);
+  }
+
+  /* Desktop monitor */
+  .monitor .panel { padding: 9px; border-radius: 26px; background: var(--rim-x); box-shadow: var(--rim-shadow); }
+  .monitor .screen { overflow: hidden; border: 14px solid var(--bezel); border-radius: 18px; box-shadow: 0 0 0 1px rgba(80,95,125,.35); }
+  .monitor .neck { width: 16%; height: 90px; margin: 0 auto; background: linear-gradient(90deg, #a7b2c6, #eef2f7 50%, #a7b2c6); clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%); }
+  .monitor .foot { width: 30%; height: 14px; margin: 0 auto; border-radius: 4px 4px 12px 12px; background: var(--rim-y); box-shadow: inset 0 1px 0 #fff, 0 20px 30px -12px rgba(40,52,85,.45); }
+
+  /* Phone / tablet: brushed titanium rim (light blue-silver), very thin black bezel, side buttons */
+  .phone {
+    --rim: linear-gradient(90deg, #a7b2c6 0%, #e9eef5 6%, #cfd7e3 18%, #dfe5ee 50%, #cfd7e3 82%, #eef2f7 94%, #9eaabf 100%);
+    padding: 11px; border-radius: 70px; position: relative; background: var(--rim);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.9),
+      inset 0 2px 1px rgba(255,255,255,.9),
+      inset 0 -2px 2px rgba(90,105,135,.35),
+      0 1px 0 rgba(255,255,255,.6),
+      0 40px 60px -30px rgba(40,52,85,.55),
+      0 10px 20px -10px rgba(40,52,85,.25);
+  }
+  .phone .screen { overflow: hidden; border-radius: 59px; position: relative; border: 5px solid var(--bezel); box-shadow: 0 0 0 1px rgba(80,95,125,.35); }
+  .phone .btn-a, .phone .btn-v1, .phone .btn-v2, .phone .btn-p {
+    position: absolute; width: 5px; border-radius: 3px;
+    background: linear-gradient(90deg, #8f9bb1, #e6ebf2 60%, #b7c1d1);
+  }
+  .phone .btn-a  { left: -4px; top: 15%; height: 4%; }
+  .phone .btn-v1 { left: -4px; top: 22%; height: 7.5%; }
+  .phone .btn-v2 { left: -4px; top: 31%; height: 7.5%; }
+  .phone .btn-p  { right: -4px; top: 25%; height: 11%; background: linear-gradient(270deg, #8f9bb1, #e6ebf2 60%, #b7c1d1); }
+  .phone .island { position: absolute; top: 11px; left: 50%; width: 122px; height: 35px; margin-left: -61px; border-radius: 20px; background: #000; z-index: 2; pointer-events: none; }
+  .phone .punch { position: absolute; top: 12px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #000; z-index: 2; pointer-events: none; }
+  .phone.android { border-radius: 52px; padding: 9px; }
+  .phone.android .screen { border-radius: 43px; }
+  .phone.classic { border-radius: 58px; }
+  .phone.classic .screen { border-radius: 47px; border-width: 70px 12px; }
+  .phone.classic .home { position: absolute; bottom: 24px; left: 50%; width: 46px; height: 46px; margin-left: -23px; border-radius: 50%; box-shadow: inset 0 0 0 2px #4a4e57; z-index: 2; }
+  .phone.tablet { border-radius: 44px; padding: 10px; }
+  .phone.tablet .screen { border-radius: 34px; border-width: 16px; }
+  .phone.landscape .island, .phone.landscape .punch,
+  .phone.landscape .btn-a, .phone.landscape .btn-v1, .phone.landscape .btn-v2, .phone.landscape .btn-p { display: none; }
+  .phone.landscape { --rim: linear-gradient(180deg, #a7b2c6 0%, #e9eef5 6%, #cfd7e3 18%, #dfe5ee 50%, #cfd7e3 82%, #eef2f7 94%, #9eaabf 100%); }
+  .phone.classic.landscape .screen { border-width: 12px 70px; }
+  .phone.classic.landscape .home { bottom: auto; top: 50%; left: auto; right: 24px; margin: -23px 0 0; }
+
+  .hint { position: fixed; bottom: 10px; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 11px; opacity: .8; pointer-events: none; }
+  kbd { font: inherit; padding: 1px 5px; border: 1px solid rgba(20,30,60,.15); border-radius: 4px; background: rgba(255,255,255,.5); }
+
+  @media (max-width: 980px) { .brand span, .lbl { display: none; } }
+</style>
+</head>
+<body>
+  <div class="studio"><i class="horizon"></i><i class="rainbow"></i><i class="rainbow b"></i><i class="glow"></i><i class="vignette"></i></div>
+  <div class="bar">
+    <div class="brand"><i class="dot"></i><span>Device Preview</span></div>
+    <input class="url" id="url" spellcheck="false" />
+    <button class="btn" id="reload" title="Reload both (R)"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg></button>
+    <button class="btn" id="external" title="Open in new tab"><svg viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></button>
+    <button class="btn" id="sync" title="Sync scroll &amp; navigation between devices (S)"><svg viewBox="0 0 24 24"><path d="M7 4v16"/><path d="M4 7l3-3 3 3"/><path d="M4 17l3 3 3-3"/><path d="M17 4v16"/><path d="M14 7l3-3 3 3"/><path d="M14 17l3 3 3-3"/></svg></button>
+    <div class="sep"></div>
+    <div class="group"><span class="lbl">Laptop</span><select id="laptop"></select></div>
+    <div class="group"><span class="lbl">Mobile</span><select id="mobile"></select>
+      <button class="btn" id="rotate" title="Rotate mobile (L)"><svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 13a9 9 0 0 0 6 7"/><path d="M3 17v-4h4"/></svg></button>
+    </div>
+    <div class="sep"></div>
+    <div class="seg" id="view"><button data-v="both">Both</button><button data-v="laptop">Laptop</button><button data-v="mobile">Mobile</button></div>
+    <div class="seg" id="mode" title="Same scale = laptop and mobile share one scale · Fit = each as large as possible"><button data-v="same">Same scale</button><button data-v="fit">Fit</button></div>
+  </div>
+
+  <div class="stage" id="stage"><div class="row" id="row">
+    <div class="slot" id="slotL"><div class="fit" id="fitL"></div><div class="label" id="labL"></div></div>
+    <div class="slot" id="slotM"><div class="fit" id="fitM"></div><div class="label" id="labM"></div></div>
+  </div></div>
+  <div class="hint"><kbd>R</kbd> reload · <kbd>L</kbd> rotate mobile · <kbd>S</kbd> sync scroll · edits hot-reload in both frames</div>
+
+<script>
+  // Replaced by the server with { target, path }. Left as a string = opened without the server (no scroll sync).
+  const CONFIG = "__PREVIEW_CONFIG__";
+  const PROXIED = typeof CONFIG === 'object';
+  const qs = new URLSearchParams(location.search);
+  const TARGET = PROXIED ? CONFIG.target : new URL(qs.get('url') || 'http://localhost:3000').origin;
+  const START_PATH = PROXIED ? CONFIG.path : (() => { const u = new URL(qs.get('url') || 'http://localhost:3000'); return u.pathname + u.search + u.hash; })();
+
+  // CSS viewport sizes (default "looks like" resolution of each device).
+  const LAPTOPS = {
+    mbp16:   { name: 'MacBook Pro 16"', w: 1728, h: 1117, kind: 'laptop' },
+    mbp14:   { name: 'MacBook Pro 14"', w: 1512, h: 982,  kind: 'laptop' },
+    mba15:   { name: 'MacBook Air 15"', w: 1710, h: 1112, kind: 'laptop' },
+    mba13:   { name: 'MacBook Air 13"', w: 1470, h: 956,  kind: 'laptop' },
+    lap1440: { name: 'Laptop 1440',     w: 1440, h: 900,  kind: 'laptop' },
+    lap1366: { name: 'Laptop 1366',     w: 1366, h: 768,  kind: 'laptop' },
+    lap1280: { name: 'Small laptop 1280', w: 1280, h: 800, kind: 'laptop' },
+    fhd:     { name: 'Desktop 1080p',   w: 1920, h: 1080, kind: 'monitor' },
+    qhd:     { name: 'Desktop 1440p',   w: 2560, h: 1440, kind: 'monitor' },
+  };
+  const MOBILES = {
+    ip16pro:  { name: 'iPhone 16 Pro',     w: 402, h: 874,  kind: 'island' },
+    ip16pm:   { name: 'iPhone 16 Pro Max', w: 440, h: 956,  kind: 'island' },
+    ip15:     { name: 'iPhone 15 / 16',    w: 393, h: 852,  kind: 'island' },
+    ipmini:   { name: 'iPhone 13 mini',    w: 375, h: 812,  kind: 'island' },
+    ipse:     { name: 'iPhone SE',         w: 375, h: 667,  kind: 'classic' },
+    pixel:    { name: 'Pixel 9',           w: 412, h: 923,  kind: 'android' },
+    galaxy:   { name: 'Galaxy S24',        w: 360, h: 780,  kind: 'android' },
+    android:  { name: 'Small Android',     w: 360, h: 640,  kind: 'android' },
+    ipadmini: { name: 'iPad mini',         w: 744, h: 1133, kind: 'tablet' },
+    ipad:     { name: 'iPad Air 11"',      w: 820, h: 1180, kind: 'tablet' },
+  };
+
+  // ---------- state ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('dp:' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('dp:' + k, JSON.stringify(v)); } catch {} },
+  };
+  const state = {
+    path: START_PATH || '/',
+    laptop: store.get('laptop', 'mbp16'),
+    mobile: store.get('mobile', 'ip16pro'),
+    landscape: store.get('landscape', false),
+    view: store.get('view', 'both'),
+    mode: store.get('mode', 'same'),
+    sync: store.get('sync', true),
+  };
+  if (!LAPTOPS[state.laptop]) state.laptop = 'mbp16';
+  if (!MOBILES[state.mobile]) state.mobile = 'ip16pro';
+  if (!['same', 'fit'].includes(state.mode)) state.mode = 'same';
+
+  const $ = (id) => document.getElementById(id);
+  const frames = { L: null, M: null };
+  const src = (path) => (PROXIED ? path : TARGET + path);
+
+  // ---------- build devices ----------
+  function makeIframe(w, h, key) {
+    const f = document.createElement('iframe');
+    f.width = w; f.height = h; f.src = src(state.path);
+    f.setAttribute('allow', 'clipboard-read; clipboard-write; fullscreen');
+    f.addEventListener('load', () => wire(key));
+    f.addEventListener('pointerenter', () => (active = key));
+    return f;
+  }
+  const el = (c) => Object.assign(document.createElement('div'), { className: c });
+
+  function buildLaptop() {
+    const p = LAPTOPS[state.laptop];
+    const d = el('device ' + p.kind);
+    frames.L = makeIframe(p.w, p.h, 'L');
+    const screen = el('screen');
+    screen.append(frames.L);
+    if (p.kind === 'laptop') {
+      const lid = el('lid');
+      lid.append(screen);
+      d.append(lid, el('base'));
+    } else {
+      const panel = el('panel');
+      panel.append(screen);
+      d.append(panel, el('neck'), el('foot'));
+    }
+    $('fitL').replaceChildren(d);
+  }
+
+  function buildMobile() {
+    const p = MOBILES[state.mobile];
+    const [w, h] = state.landscape ? [p.h, p.w] : [p.w, p.h];
+    const d = el('device phone ' + p.kind + (state.landscape ? ' landscape' : ''));
+    frames.M = makeIframe(w, h, 'M');
+    const screen = el('screen');
+    screen.append(frames.M);
+    if (p.kind === 'island') screen.append(el('island'));
+    if (p.kind === 'android') screen.append(el('punch'));
+    if (p.kind !== 'tablet') d.append(el('btn-a'), el('btn-v1'), el('btn-v2'), el('btn-p'));
+    if (p.kind === 'classic') d.append(el('home'));
+    d.append(screen);
+    $('fitM').replaceChildren(d);
+  }
+
+  // ---------- scroll + navigation sync ----------
+  // Only the frame the user is interacting with drives the other, so the two never fight.
+  let active = 'L';
+  const other = (k) => (k === 'L' ? 'M' : 'L');
+  const docOf = (k) => { try { return frames[k].contentWindow.document; } catch { return null; } };
+  const pathOf = (k) => { try { const l = frames[k].contentWindow.location; return l.pathname + l.search + l.hash; } catch { return null; } };
+
+  function cssPath(node) {
+    const parts = [];
+    while (node && node.nodeType === 1 && node !== node.ownerDocument.body) {
+      if (node.id) { parts.unshift('#' + CSS.escape(node.id)); break; }
+      const i = Array.prototype.indexOf.call(node.parentElement.children, node) + 1;
+      parts.unshift(`${node.tagName.toLowerCase()}:nth-child(${i})`);
+      node = node.parentElement;
+    }
+    return parts.length ? (parts[0].startsWith('#') ? '' : 'body > ') + parts.join(' > ') : null;
+  }
+  const ratio = (pos, size, view) => (size - view > 0 ? pos / (size - view) : 0);
+
+  function wire(k) {
+    const doc = docOf(k);
+    $('sync').disabled = !doc;
+    if (!doc) return;
+    const win = doc.defaultView;
+    for (const ev of ['wheel', 'pointerdown', 'keydown', 'touchstart']) {
+      doc.addEventListener(ev, () => (active = k), { capture: true, passive: true });
+    }
+    doc.addEventListener('scroll', (e) => {
+      if (!state.sync || active !== k) return;
+      const od = docOf(other(k));
+      if (!od) return;
+      const ow = od.defaultView;
+      const t = e.target;
+      if (t === doc || t === doc.documentElement || t === doc.body) {
+        const r = ratio(win.scrollY, doc.scrollingElement.scrollHeight, win.innerHeight);
+        ow.scrollTo({ top: r * (od.scrollingElement.scrollHeight - ow.innerHeight), behavior: 'instant' });
+      } else if (t.nodeType === 1) {
+        const sel = cssPath(t);
+        const ot = sel && od.querySelector(sel);
+        if (!ot) return;
+        const r = ratio(t.scrollTop, t.scrollHeight, t.clientHeight);
+        ot.scrollTo({ top: r * (ot.scrollHeight - ot.clientHeight), behavior: 'instant' });
+      }
+    }, { capture: true, passive: true });
+    syncPath(k);
+  }
+
+  // Follow link clicks / client-side routing in the active frame.
+  let pending = null;
+  function syncPath(k) {
+    const p = pathOf(k);
+    if (!p) return;
+    if (k === active || !pathOf(other(k))) { state.path = p; $('url').value = TARGET + p; }
+    if (!state.sync || k !== active) return;
+    const op = pathOf(other(k));
+    if (op !== null && op !== p && pending !== p) {
+      pending = p;
+      frames[other(k)].contentWindow.location.replace(p);
+      setTimeout(() => (pending = null), 3000);
+    }
+  }
+  setInterval(() => syncPath(active), 400);
+
+  // ---------- layout / scaling ----------
+  function layout() {
+    const stage = $('stage');
+    const cs = getComputedStyle(stage);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    const labelH = 36;
+    const showL = state.view !== 'mobile', showM = state.view !== 'laptop';
+    $('slotL').hidden = !showL; $('slotM').hidden = !showM;
+
+    const W = stage.clientWidth - padX;
+    const H = stage.clientHeight - padY - labelH;
+    const gap = showL && showM ? Math.max(24, Math.min(64, W * 0.035)) : 0;
+    $('row').style.setProperty('--gap', gap + 'px');
+
+    const devL = $('fitL').firstChild, devM = $('fitM').firstChild;
+    const nL = { w: devL.offsetWidth, h: devL.offsetHeight };
+    const nM = { w: devM.offsetWidth, h: devM.offsetHeight };
+
+    let sL = 0, sM = 0;
+    if (showL && showM) {
+      if (state.mode === 'same') {
+        sL = sM = Math.min(1, (W - gap) / (nL.w + nM.w), H / Math.max(nL.h, nM.h));
+      } else {
+        sM = Math.min(1, H / nM.h, (W - gap) * 0.4 / nM.w);
+        sL = Math.min(1, H / nL.h, (W - gap - nM.w * sM) / nL.w);
+      }
+    } else if (showL) sL = Math.min(1, W / nL.w, H / nL.h);
+    else sM = Math.min(1, W / nM.w, H / nM.h);
+
+    apply('L', devL, nL, sL, LAPTOPS[state.laptop], false);
+    apply('M', devM, nM, sM, MOBILES[state.mobile], state.landscape);
+  }
+
+  function apply(k, dev, n, s, p, swap) {
+    dev.style.transform = `scale(${s})`;
+    const fit = $('fit' + k);
+    fit.style.width = n.w * s + 'px';
+    fit.style.height = n.h * s + 'px';
+    const [w, h] = swap ? [p.h, p.w] : [p.w, p.h];
+    $('lab' + k).innerHTML = `<b>${p.name}</b> · ${w} × ${h} · ${Math.round(s * 100)}%`;
+  }
+
+  // ---------- controls ----------
+  function fillSelect(sel, list, val) {
+    sel.innerHTML = Object.entries(list).map(([k, p]) => `<option value="${k}">${p.name} — ${p.w}×${p.h}</option>`).join('');
+    sel.value = val;
+  }
+  function setSeg(id, val) {
+    for (const b of $(id).children) b.classList.toggle('on', b.dataset.v === val);
+  }
+  function reload() {
+    for (const f of [frames.L, frames.M]) {
+      if (!f) continue;
+      try { f.contentWindow.location.reload(); }
+      catch { f.src = 'about:blank'; requestAnimationFrame(() => (f.src = src(state.path))); }
+    }
+  }
+  function rebuild(which) {
+    if (which !== 'M') buildLaptop();
+    if (which !== 'L') buildMobile();
+    layout();
+  }
+  function go(input) {
+    let u = input.trim();
+    if (/^\d+$/.test(u)) u = 'http://localhost:' + u;
+    else if (u.startsWith('/')) u = TARGET + u;
+    else if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
+    const url = new URL(u);
+    if (url.origin === TARGET) {
+      state.path = url.pathname + url.search + url.hash;
+      frames.L.src = frames.M.src = src(state.path);
+    } else {
+      // A different origin cannot go through this preview's proxy: load it directly (scroll sync off).
+      frames.L.src = frames.M.src = url.href;
+    }
+    $('url').value = u;
+  }
+
+  fillSelect($('laptop'), LAPTOPS, state.laptop);
+  fillSelect($('mobile'), MOBILES, state.mobile);
+  $('url').value = TARGET + state.path;
+  setSeg('view', state.view); setSeg('mode', state.mode);
+  $('rotate').classList.toggle('on', state.landscape);
+  $('sync').classList.toggle('on', state.sync && PROXIED);
+  if (!PROXIED) { $('sync').disabled = true; $('sync').title = 'Scroll sync needs the preview server (run the skill again)'; }
+
+  $('laptop').onchange = (e) => { state.laptop = e.target.value; store.set('laptop', state.laptop); rebuild('L'); };
+  $('mobile').onchange = (e) => { state.mobile = e.target.value; store.set('mobile', state.mobile); rebuild('M'); };
+  $('rotate').onclick = () => {
+    state.landscape = !state.landscape; store.set('landscape', state.landscape);
+    $('rotate').classList.toggle('on', state.landscape); rebuild('M');
+  };
+  $('sync').onclick = () => { state.sync = !state.sync; store.set('sync', state.sync); $('sync').classList.toggle('on', state.sync); };
+  $('view').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; state.view = v; store.set('view', v); setSeg('view', v); layout(); };
+  $('mode').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; state.mode = v; store.set('mode', v); setSeg('mode', v); layout(); };
+  $('reload').onclick = reload;
+  $('external').onclick = () => window.open(TARGET + state.path, '_blank');
+  $('url').onkeydown = (e) => { if (e.key === 'Enter') { go(e.target.value); e.target.blur(); } };
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'r' || e.key === 'R') reload();
+    if (e.key === 'l' || e.key === 'L') $('rotate').click();
+    if (e.key === 's' || e.key === 'S') $('sync').click();
+  });
+  addEventListener('resize', layout);
+
+  rebuild();
+</script>
+</body>
+</html>
