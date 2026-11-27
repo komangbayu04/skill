@@ -12,7 +12,8 @@ frame is mirrored in the other, and hot reload updates both.
 
 - Laptop sizes: MacBook Pro 16" / 14", MacBook Air 15" / 13", laptop 1440 / 1366 / 1280, desktop 1080p / 1440p
 - Mobile sizes: iPhone 16 Pro / Pro Max / 15, iPhone 13 mini, iPhone SE, Pixel 9, Galaxy S24, small Android, iPad mini, iPad Air
-- Rotate mobile to landscape, show both or just one, "Same scale" or "Fit"
+- Rotate mobile to landscape, show both devices or just one (Both / Laptop / Mobile)
+- Both devices share one scale, so their real size relation stays true
 - Synced scroll and navigation (toggle with the ⇅ button)
 - Shortcuts: `R` reload both, `L` rotate mobile, `S` toggle sync
 - Tested with Vite and Next.js, including hot reload
@@ -21,30 +22,25 @@ frame is mirrored in the other, and hot reload updates both.
 
 Pick one.
 
-### npx (works with Claude Code, Cursor, Codex and other agents)
+### npx
 
 ```bash
 npx skills add komangbayu04/skill@device-preview
 ```
 
-Then run `/device-preview` in Claude Code.
+Then run `/device-preview` in Claude Code. The same command also installs the skill for
+other agents such as Cursor and Codex, but it is built and tested for Claude Code.
 
 ### Claude Code plugin
 
 Inside Claude Code:
 
 ```
-/plugin install bayu --marketplace komangbayu04/skill
-```
-
-On older Claude Code versions, use two steps instead:
-
-```
 /plugin marketplace add komangbayu04/skill
 /plugin install bayu@bayu-skills
 ```
 
-Then run `/bayu:device-preview`. Plugin updates arrive automatically.
+Then run `/bayu:device-preview`. To get updates later, run `/plugin marketplace update bayu-skills`.
 
 ### Manual
 
