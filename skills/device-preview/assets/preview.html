@@ -131,9 +131,10 @@
 
   /* Stage */
   .stage {
-    flex: 1; min-height: 0; overflow: auto;
+    flex: 1; min-height: 0; overflow: auto; scrollbar-width: none;
     display: flex; padding: 28px 28px 40px;
   }
+  .stage::-webkit-scrollbar { display: none; }
   /* margin: auto centers the pair and stays safe when it overflows */
   .row { display: flex; align-items: flex-start; gap: var(--gap, 48px); margin: auto; }
   .slot { flex: none; display: flex; flex-direction: column; align-items: center; gap: 18px; }
@@ -385,10 +386,21 @@
   }
   const ratio = (pos, size, view) => (size - view > 0 ? pos / (size - view) : 0);
 
+  // Real devices overlay their scrollbars, so the frames hide them while scrolling still works.
+  const HIDE_SCROLLBARS = '*{scrollbar-width:none!important}*::-webkit-scrollbar{display:none!important}';
+  function hideScrollbars(doc) {
+    if (doc.getElementById('device-preview-style')) return;
+    const style = doc.createElement('style');
+    style.id = 'device-preview-style';
+    style.textContent = HIDE_SCROLLBARS;
+    (doc.head || doc.documentElement).append(style);
+  }
+
   function wire(k) {
     const doc = docOf(k);
     $('sync').disabled = !doc;
     if (!doc) return;
+    hideScrollbars(doc);
     const win = doc.defaultView;
     for (const ev of ['wheel', 'pointerdown', 'keydown', 'touchstart']) {
       doc.addEventListener(ev, () => (active = k), { capture: true, passive: true });
